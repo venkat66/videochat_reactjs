@@ -7,7 +7,6 @@ import CallingStatus from '../components/CallingStatus';
 import InCallStatus from '../components/InCallStatus';
 import Videos from '../components/Videos';
 import { HOST } from '../api/api';
-import Logout from '../components/Lougout';
 
 const VideoCall = () => {
   const [myName, setMyName] = useState('');
@@ -16,9 +15,9 @@ const VideoCall = () => {
   const [iceCandidatesFromCaller, setIceCandidatesFromCaller] = useState([]);
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
-  const [showUserNameInput, setShowUserNameInput] = useState(!myName);
-  const [showCallInput, setShowCallInput] = useState(!!myName);
-  const [showUserInfo, setShowUserInfo] = useState(!!myName);
+  const [showUserNameInput, setShowUserNameInput] = useState(true);
+  const [showCallInput, setShowCallInput] = useState(false);
+  const [showUserInfo, setShowUserInfo] = useState(false);
   const [showAnswerButton, setShowAnswerButton] = useState(false);
   const [showCalling, setShowCalling] = useState(false);
   const [showInCall, setShowInCall] = useState(false);
@@ -40,63 +39,39 @@ const VideoCall = () => {
     ]
   };
 
-  useEffect(() => {
-    if (callSocketRef.current) {
-      console.log('WebSocket connection established');
-      callSocketRef.current.onmessage = (e) => {
-        const response = JSON.parse(e.data);
-        const type = response.type;
+ 
 
-        if (type === 'connection') {
-          console.log('Connection:', response.data.message);
-        }
+  const connectSocket = (userName) => {
 
-        if (type === 'call_received') {
-          console.log("Call received");
-          onNewCall(response.data);
-        }
-
-        if (type === 'call_answered') {
-          console.log('Call answered');
-          onCallAnswered(response.data);
-        }
-
-        if (type === 'ICEcandidate') {
-          console.log('ICE candidate received');
-          sendICEcandidate(response.data);
-        }
-      };
-    }
-  }, []);
-
-  const connectSocket = (myName) => {
-    callSocketRef.current = new WebSocket(HOST + '/ws/call/');
+    callSocketRef.current = new WebSocket(
+      HOST + '/ws/call/'
+    );
 
     callSocketRef.current.onopen = () => {
-      console.log('WebSocket connection opened for user:', myName);
+      console.log(myName,'myssss')
+      console.log(userName,'user on opennnnnn')
       callSocketRef.current.send(
         JSON.stringify({
           type: 'login',
           data: {
-            name: myName
+            name: userName
           }
         })
       );
     };
   };
 
-  const login = (e) => {
-    console.log('Logging in as:', myName);
-    setMyName(myName);
-    // localStorage.setItem('myName', myName);
+  const login = (userName) => {
+    console.log(userName,'username on login')
+    setMyName(userName);
     setShowUserNameInput(false);
     setShowCallInput(true);
     setShowUserInfo(true);
-    connectSocket(myName);
+    connectSocket(userName);
   };
 
   const call = (userToCall) => {
-    // setOtherUser(userToCall);
+    setOtherUser(userToCall);
     beReady().then((bool) => {
       processCall(userToCall);
     });
@@ -115,37 +90,41 @@ const VideoCall = () => {
         audio: true,
         video: true
       });
-      console.log('Local stream obtained');
+      console.log('stream');
       setLocalStream(stream);
       return await createConnectionAndAddStream(stream);
     } catch (e) {
       alert('getUserMedia() error: ' + e.name);
     }
   };
+  
 
   const createConnectionAndAddStream = (stream) => {
-    console.log('Creating peer connection and adding stream');
+    console.log('createConnectionAndAddStream')
     createPeerConnection();
     peerConnectionRef.current.addStream(stream);
     return true;
   };
 
   const processCall = (userName) => {
+    console.log("processCall",userName)
     peerConnectionRef.current.createOffer(
       (sessionDescription) => {
         peerConnectionRef.current.setLocalDescription(sessionDescription);
+        console.log(sessionDescription,'sessionDescription')
         sendCall({
           name: userName,
           rtcMessage: sessionDescription
         });
       },
       (error) => {
-        console.log('Error creating offer:', error);
+        console.log('Error');
       }
     );
   };
 
   const processAccept = () => {
+    console.log('processAccept')
     peerConnectionRef.current.setRemoteDescription(
       new RTCSessionDescription(remoteRTCMessage)
     );
@@ -158,7 +137,7 @@ const VideoCall = () => {
             try {
               peerConnectionRef.current.addIceCandidate(candidate);
             } catch (error) {
-              console.log('Error adding ICE candidate:', error);
+              console.log(error);
             }
           });
           setIceCandidatesFromCaller([]);
@@ -170,7 +149,7 @@ const VideoCall = () => {
         });
       },
       (error) => {
-        console.log('Error creating answer:', error);
+        console.log('Error');
       }
     );
   };
@@ -181,20 +160,19 @@ const VideoCall = () => {
       peerConnectionRef.current.onicecandidate = handleIceCandidate;
       peerConnectionRef.current.onaddstream = handleRemoteStreamAdded;
       peerConnectionRef.current.onremovestream = handleRemoteStreamRemoved;
-      console.log('Created RTCPeerConnection');
+      console.log('Created RTCPeerConnnection');
     } catch (e) {
-      console.log('Failed to create PeerConnection:', e.message);
+      console.log('Failed to create PeerConnection, exception: ' + e.message);
       alert('Cannot create RTCPeerConnection object.');
     }
   };
 
   const handleIceCandidate = (event) => {
-
-    console.log(event,'handleicdecandidateeee')
-    console.log(otherUser,)
+    console.log(event,'handleIceCandidate')
     if (event.candidate) {
+      console.log("event candidate present")
       sendICEcandidate({
-        user: otherUser,
+        user: "ram",
         rtcMessage: {
           label: event.candidate.sdpMLineIndex,
           id: event.candidate.sdpMid,
@@ -202,12 +180,13 @@ const VideoCall = () => {
         }
       });
     } else {
-      console.log('End of ICE candidates.');
+      console.log('End of candidates.');
     }
   };
 
   const handleRemoteStreamAdded = (event) => {
-    console.log('Remote stream added');
+    console.log('nnnnnn')
+    console.log(event)
     setRemoteStream(event.stream);
   };
 
@@ -217,6 +196,7 @@ const VideoCall = () => {
   };
 
   const sendCall = (data) => {
+    console.log(data,'send call datttta')
     callSocketRef.current.send(
       JSON.stringify({
         type: 'call',
@@ -228,6 +208,7 @@ const VideoCall = () => {
   };
 
   const answerCall = (data) => {
+    console.log(data,'answercall dataaaa')
     callSocketRef.current.send(
       JSON.stringify({
         type: 'answer_call',
@@ -238,18 +219,17 @@ const VideoCall = () => {
   };
 
   const sendICEcandidate = (data) => {
-    console.log(data,'sendICECANDIAEEEE')
+    console.log(data, "sendICEcandidate");
+
     if (callSocketRef.current.readyState === WebSocket.OPEN) {
-      callSocketRef.current.send(
-        JSON.stringify({
-          type: 'ICEcandidate',
-          data
-        })
-      );
+        callSocketRef.current.send(JSON.stringify({
+            type: "ICEcandidate",
+            data
+        }));
     } else {
-      console.error('WebSocket is not open. Ready state:', callSocketRef.current.readyState);
+        console.error("WebSocket is not open. Ready state: " + callSocketRef.current.readyState);
     }
-  };
+};
 
   const callProgress = () => {
     setShowCalling(false);
@@ -259,87 +239,51 @@ const VideoCall = () => {
   };
 
   const stop = () => {
-    if (localStream) {
-      localStream.getTracks().forEach((track) => track.stop());
-    }
+    localStream.getTracks().forEach((track) => track.stop());
     setCallInProgress(false);
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-      peerConnectionRef.current = null;
-    }
+    peerConnectionRef.current.close();
+    peerConnectionRef.current = null;
     setShowCallInput(true);
     setShowAnswerButton(false);
     setShowInCall(false);
     setShowCalling(false);
-    setOtherUser('');
+    setOtherUser(null);
   };
+  useEffect(() => {
+    if (callSocketRef.current) {
+      console.log('current oconneeeeeee')
+      callSocketRef.current.onmessage = (e) => {
+        console.log(e,'currrenn on message eee')
+        const response = JSON.parse(e.data);
+        const type = response.type;
 
+        if (type === 'connection') {
+          console.log('connectionnnnn')
+          console.log(response.data.message);
+        }
+
+        if (type === 'call_received') {
+          console.log("call receivedddd")
+          onNewCall(response.data);
+        }
+
+        if (type === 'call_answered') {
+          console.log('call answereddddd')
+          onCallAnswered(response.data);
+        }
+
+        if (type === 'ICEcandidate') {
+          console.log('icecandiddddat on connnn')
+          sendICEcandidate(response.data);
+        }
+      };
+    }
+  }, []);
   return (
     <div className="container">
-      {/* {showUserNameInput && <UserLogin onLogin={login} />} */}
-      {showUserNameInput && 
-      <>
-      <div className="container mt-5">
-      <div className="row justify-content-center">
-        <div className="col-md-6">
-          <div className="card">
-            <div className="card-body">
-              <h5 className="card-title">Login</h5>
-              <div className="form-group">
-                <input 
-                  type="text" 
-                  className="form-control"
-                  value={myName}
-                  onChange={(e) => setMyName(e.target.value)}
-                  placeholder="Enter your name" 
-                />
-              </div>
-              <button 
-                className="btn btn-primary"
-                onClick={login}
-              >
-                Login
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div></>
-      }
-      
-      {/* {showCallInput && <CallInput onCall={call} />} */}
-      {showCallInput && 
-      <>
-      <div className="container mt-3">
-      <div className="row justify-content-center">
-        <div className="col-md-6">
-          <div className="card">
-            <div className="card-body">
-              <h5 className="card-title">Make a Call</h5>
-              <div className="form-group">
-                <input 
-                  type="text" 
-                  className="form-control"
-                  value={otherUser}
-                  onChange={(e) => setOtherUser(e.target.value)}
-                  placeholder="Call username" 
-                />
-              </div>
-              <button 
-                className="btn btn-primary"
-                onClick={call}
-              >
-                Call
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-      </>
-      }
+      {showUserNameInput && <UserLogin onLogin={login} />}
+      {showCallInput && <CallInput onCall={call} />}
       {showUserInfo && <UserInfo userName={myName} />}
-      {<Logout/>}
       {showAnswerButton && <AnswerButton onAnswer={answer} />}
       {showCalling && <CallingStatus otherUser={otherUser} />}
       {showInCall && <InCallStatus otherUser={otherUser} onStop={stop} />}
