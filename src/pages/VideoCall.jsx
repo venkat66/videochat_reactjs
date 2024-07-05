@@ -6,6 +6,7 @@ import AnswerButton from '../components/AnswerButton';
 import CallingStatus from '../components/CallingStatus';
 import InCallStatus from '../components/InCallStatus';
 import Videos from '../components/Videos';
+import { HOST } from '../api/api';
 
 const VideoCall = () => {
   const [myName, setMyName] = useState('');
@@ -40,42 +41,49 @@ const VideoCall = () => {
 
   useEffect(() => {
     if (callSocketRef.current) {
+      console.log('current oconneeeeeee')
       callSocketRef.current.onmessage = (e) => {
+        console.log(e,'currrenn on message eee')
         const response = JSON.parse(e.data);
         const type = response.type;
 
         if (type === 'connection') {
+          console.log('connectionnnnn')
           console.log(response.data.message);
         }
 
         if (type === 'call_received') {
+          console.log("call receivedddd")
           onNewCall(response.data);
         }
 
         if (type === 'call_answered') {
+          console.log('call answereddddd')
           onCallAnswered(response.data);
         }
 
         if (type === 'ICEcandidate') {
-          onICECandidate(response.data);
+          console.log('icecandiddddat on connnn')
+          sendICEcandidate(response.data);
         }
       };
     }
   }, []);
 
-  const connectSocket = () => {
-    const wsScheme = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+  const connectSocket = (userName) => {
 
     callSocketRef.current = new WebSocket(
-      wsScheme + window.location.host + '/ws/call/'
+      HOST + '/ws/call/'
     );
 
     callSocketRef.current.onopen = () => {
+      console.log(myName,'myssss')
+      console.log(userName,'user on opennnnnn')
       callSocketRef.current.send(
         JSON.stringify({
           type: 'login',
           data: {
-            name: myName
+            name: userName
           }
         })
       );
@@ -83,11 +91,12 @@ const VideoCall = () => {
   };
 
   const login = (userName) => {
+    console.log(userName,'username on login')
     setMyName(userName);
     setShowUserNameInput(false);
     setShowCallInput(true);
     setShowUserInfo(true);
-    connectSocket();
+    connectSocket(userName);
   };
 
   const call = (userToCall) => {
@@ -104,31 +113,34 @@ const VideoCall = () => {
     setShowAnswerButton(false);
   };
 
-  const beReady = () => {
-    return navigator.mediaDevices
-      .getUserMedia({
+  const beReady = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
         video: true
-      })
-      .then((stream) => {
-        setLocalStream(stream);
-        return createConnectionAndAddStream(stream);
-      })
-      .catch((e) => {
-        alert('getUserMedia() error: ' + e.name);
       });
+      console.log('stream');
+      setLocalStream(stream);
+      return await createConnectionAndAddStream(stream);
+    } catch (e) {
+      alert('getUserMedia() error: ' + e.name);
+    }
   };
+  
 
   const createConnectionAndAddStream = (stream) => {
+    console.log('createConnectionAndAddStream')
     createPeerConnection();
     peerConnectionRef.current.addStream(stream);
     return true;
   };
 
   const processCall = (userName) => {
+    console.log("processCall",userName)
     peerConnectionRef.current.createOffer(
       (sessionDescription) => {
         peerConnectionRef.current.setLocalDescription(sessionDescription);
+        console.log(sessionDescription,'sessionDescription')
         sendCall({
           name: userName,
           rtcMessage: sessionDescription
@@ -141,6 +153,7 @@ const VideoCall = () => {
   };
 
   const processAccept = () => {
+    console.log('processAccept')
     peerConnectionRef.current.setRemoteDescription(
       new RTCSessionDescription(remoteRTCMessage)
     );
@@ -184,7 +197,9 @@ const VideoCall = () => {
   };
 
   const handleIceCandidate = (event) => {
+    console.log(event,'handleIceCandidate')
     if (event.candidate) {
+      console.log("event candidate present")
       sendICEcandidate({
         user: otherUser,
         rtcMessage: {
@@ -199,6 +214,8 @@ const VideoCall = () => {
   };
 
   const handleRemoteStreamAdded = (event) => {
+    console.log('nnnnnn')
+    console.log(event)
     setRemoteStream(event.stream);
   };
 
@@ -208,6 +225,7 @@ const VideoCall = () => {
   };
 
   const sendCall = (data) => {
+    console.log(data,'send call datttta')
     callSocketRef.current.send(
       JSON.stringify({
         type: 'call',
@@ -219,6 +237,7 @@ const VideoCall = () => {
   };
 
   const answerCall = (data) => {
+    console.log(data,'answercall dataaaa')
     callSocketRef.current.send(
       JSON.stringify({
         type: 'answer_call',
@@ -229,13 +248,17 @@ const VideoCall = () => {
   };
 
   const sendICEcandidate = (data) => {
-    callSocketRef.current.send(
-      JSON.stringify({
-        type: 'ICEcandidate',
-        data
-      })
-    );
-  };
+    console.log(data, "sendICEcandidate");
+
+    if (callSocketRef.current.readyState === WebSocket.OPEN) {
+        callSocketRef.current.send(JSON.stringify({
+            type: "ICEcandidate",
+            data
+        }));
+    } else {
+        console.error("WebSocket is not open. Ready state: " + callSocketRef.current.readyState);
+    }
+};
 
   const callProgress = () => {
     setShowCalling(false);
