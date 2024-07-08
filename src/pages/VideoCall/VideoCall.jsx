@@ -153,11 +153,11 @@ const VideoCall = () => {
         audio: true,
         video: true
       };
-      createPeerConnection();
+      // createPeerConnection();
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       console.log('Local stream obtained');
       setLocalStream(stream);
-      // await createPeerConnection(); // Ensure peer connection is created
+      createPeerConnection(); // Ensure peer connection is created
       peerConnectionRef.current.addStream(stream);
     } catch (e) {
       handleGetUserMediaError(e);
