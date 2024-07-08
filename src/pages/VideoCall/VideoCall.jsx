@@ -204,6 +204,7 @@ const VideoCall = () => {
   };
 
   const handleIceCandidate = (event) => {
+    console.log('localicecandidate',event)
     if (event.candidate) {
       sendICEcandidate({
         user: otherUser,
@@ -346,6 +347,7 @@ const VideoCall = () => {
     setShowInCall(true);
     setShowVideos(true);
     setCallInProgress(true);
+    
   };
 
   const stop = () => {

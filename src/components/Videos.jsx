@@ -1,6 +1,29 @@
-import React from 'react';
+const handleRemoteStreamAdded = (event) => {
+  console.log('Remote stream added:', event.stream);
+  setRemoteStream(event.stream);
+};
+
+// In your Videos component, add logging to check the streams
+import React, { useEffect, useRef } from 'react';
 
 const Videos = ({ localStream, remoteStream }) => {
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+
+  useEffect(() => {
+    if (localVideoRef.current) {
+      console.log('Setting local stream:', localStream);
+      localVideoRef.current.srcObject = localStream;
+    }
+  }, [localStream]);
+
+  useEffect(() => {
+    if (remoteVideoRef.current) {
+      console.log('Setting remote stream:', remoteStream);
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
+
   return (
     <div className="container mt-3">
       <div className="row">
@@ -12,11 +35,7 @@ const Videos = ({ localStream, remoteStream }) => {
                 id="localVideo" 
                 autoPlay 
                 muted 
-                ref={video => {
-                  if (video) {
-                    video.srcObject = localStream;
-                  }
-                }} 
+                ref={localVideoRef} 
                 className="w-100"
               ></video>
             </div>
@@ -29,11 +48,7 @@ const Videos = ({ localStream, remoteStream }) => {
               <video 
                 id="remoteVideo" 
                 autoPlay 
-                ref={video => {
-                  if (video) {
-                    video.srcObject = remoteStream;
-                  }
-                }} 
+                ref={remoteVideoRef} 
                 className="w-100"
               ></video>
             </div>
