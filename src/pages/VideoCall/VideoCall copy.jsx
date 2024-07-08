@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import UserLogin from '../components/UserLogin';
-import CallInput from '../components/CallInput';
-import UserInfo from '../components/UserInfo';
-import AnswerButton from '../components/AnswerButton';
-import CallingStatus from '../components/CallingStatus';
-import InCallStatus from '../components/InCallStatus';
-import Videos from '../components/Videos';
-import { HOST } from '../api/api';
+import UserLogin from '../../components/UserLogin';
+import CallInput from '../../components/CallInput';
+import UserInfo from '../../components/UserInfo';
+import AnswerButton from '../../components/AnswerButton';
+import CallingStatus from '../../components/CallingStatus';
+import InCallStatus from '../../components/InCallStatus';
+import Videos from '../../components/Videos';
+import { HOST } from '../../api/api';
 
 const VideoCall = () => {
   const [myName, setMyName] = useState('');

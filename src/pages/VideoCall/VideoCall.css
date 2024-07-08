@@ -1,0 +1,57 @@
+/* src/VideoCall.css */
+.actionButton {
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+  }
+  
+  .dialWrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .dialNumpadHWrapper {
+    display: flex;
+    flex-direction: row;
+  }
+  
+  .dialNumber {
+    margin: 5px;
+  }
+  
+  .dialActionButton {
+    background-color: #008CBA;
+    border: none;
+    color: white;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+  }
+  
+  .incomingWrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .itemWrapper {
+    margin: 10px;
+  }
+  
+  video {
+    border: 1px solid black;
+    border-radius: 10px;
+  }
+  

@@ -1,13 +1,13 @@
-import React, { useState, useRef, useEffect } from 'react';
-import UserLogin from '../components/UserLogin';
-import CallInput from '../components/CallInput';
-import UserInfo from '../components/UserInfo';
-import AnswerButton from '../components/AnswerButton';
-import CallingStatus from '../components/CallingStatus';
-import InCallStatus from '../components/InCallStatus';
-import Videos from '../components/Videos';
-import { HOST } from '../api/api';
-import Logout from '../components/Lougout';
+import  { useState, useRef, useEffect } from 'react';
+// import UserLogin from '../components/UserLogin';
+// import CallInput from '../components/CallInput';
+import UserInfo from '../../components/UserInfo';
+import AnswerButton from '../../components/AnswerButton';
+import CallingStatus from '../../components/CallingStatus';
+import InCallStatus from '../../components/InCallStatus';
+import Videos from '../../components/Videos';
+import { HOST } from '../../api/api';
+import Logout from '../../components/Logout';
 
 const VideoCall = () => {
   const [myName, setMyName] = useState('');
@@ -41,12 +41,14 @@ const VideoCall = () => {
   };
 
   useEffect(() => {
+    console.log('useefeccccttttttttttttttttttt',callSocketRef)
     if (callSocketRef.current) {
       console.log('WebSocket connection established');
       callSocketRef.current.onmessage = (e) => {
         const response = JSON.parse(e.data);
+        console.log(response,'cone responsseessss')
         const type = response.type;
-
+        console.log("typeeeeee",type)
         if (type === 'connection') {
           console.log('Connection:', response.data.message);
         }
@@ -62,12 +64,13 @@ const VideoCall = () => {
         }
 
         if (type === 'ICEcandidate') {
+          console.log(response.data,'ICedata')
           console.log('ICE candidate received');
           sendICEcandidate(response.data);
         }
       };
     }
-  }, []);
+  },[showCallInput]);
 
   const connectSocket = (myName) => {
     callSocketRef.current = new WebSocket(HOST + '/ws/call/');
@@ -95,10 +98,10 @@ const VideoCall = () => {
     connectSocket(myName);
   };
 
-  const call = (userToCall) => {
+  const call = () => {
     // setOtherUser(userToCall);
     beReady().then((bool) => {
-      processCall(userToCall);
+      processCall(otherUser&&otherUser);
     });
   };
 
@@ -107,6 +110,14 @@ const VideoCall = () => {
       processAccept();
     });
     setShowAnswerButton(false);
+  };
+
+  const onNewCall = (data) => {
+    // Logic to handle incoming call and show answer button
+    setOtherUser(data.caller);
+    setShowAnswerButton(true); // Show the answer button
+    setRemoteRTCMessage(data.rtcMessage);
+    setIceCandidatesFromCaller(data.iceCandidates); // Assuming you receive ice candidates in data
   };
 
   const beReady = async () => {
@@ -217,6 +228,7 @@ const VideoCall = () => {
   };
 
   const sendCall = (data) => {
+    console.log("print",data)
     callSocketRef.current.send(
       JSON.stringify({
         type: 'call',
