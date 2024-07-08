@@ -158,6 +158,7 @@ const VideoCall = () => {
       console.log('Local stream obtained');
       setLocalStream(stream);
       createPeerConnection(); // Ensure peer connection is created
+      console.log('went through beready')
       peerConnectionRef.current.addStream(stream);
     } catch (e) {
       handleGetUserMediaError(e);
