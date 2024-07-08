@@ -62,13 +62,14 @@ const VideoCall = () => {
 
         if (type === 'ICEcandidate') {
           console.log('ICEcandidate:', response.data);
+          receiveICEcandidate(response.data);
           // Debounce the receiveICEcandidate function
-          if (!receiveICECandidateDebounced.current) {
-            receiveICECandidateDebounced.current = setTimeout(() => {
-              receiveICEcandidate(response.data);
-              receiveICECandidateDebounced.current = null;
-            }, 500); // Adjust debounce time as needed
-          }
+          // if (!receiveICECandidateDebounced.current) {
+          //   receiveICECandidateDebounced.current = setTimeout(() => {
+          //     receiveICEcandidate(response.data);
+          //     receiveICECandidateDebounced.current = null;
+          //   }, 500); // Adjust debounce time as needed
+          // }
         }
       };
     }
@@ -112,14 +113,14 @@ const VideoCall = () => {
     setShowAnswerButton(false);
   };
 
-  const onNewCall = (data) => {
+  const onNewCall = async (data) => {
     console.log("onNewCall:", data);
     setOtherUser(data.caller);
     setShowAnswerButton(true);
     setRemoteRTCMessage(data.rtcMessage);
     // setIceCandidatesFromCaller(data.iceCandidates);
     // Ensure Peer Connection is created before handling ICE candidates
-    // beReady();
+    // await beReady();
   };
 
   const onCallAnswered = (data) => {
@@ -152,11 +153,11 @@ const VideoCall = () => {
         audio: true,
         video: true
       };
-
+      createPeerConnection();
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       console.log('Local stream obtained');
       setLocalStream(stream);
-      createPeerConnection(); // Ensure peer connection is created
+      // await createPeerConnection(); // Ensure peer connection is created
       peerConnectionRef.current.addStream(stream);
     } catch (e) {
       handleGetUserMediaError(e);
@@ -226,28 +227,29 @@ const VideoCall = () => {
     setRemoteStream(null);
   };
 
-  const processCall = (otherUser) => {
+  const processCall = (userName) => {
+    console.log('processCall called')
     if (!peerConnectionRef.current) {
       console.log('PeerConnection is not initialized in processCall');
-      return;
+      // return;
     }
-
-    peerConnectionRef.current.createOffer().then((sessionDescription) => {
-      return peerConnectionRef.current.setLocalDescription(sessionDescription);
-    }).then(() => {
+    // console.log('peerConnectionRef.current.localDescription',peerConnectionRef.current.localDescription)
+    peerConnectionRef.current.createOffer((sessionDescription) => {
+      peerConnectionRef.current.setLocalDescription(sessionDescription);
+      console.log('sessionDescription',sessionDescription)
       sendCall({
-        name: otherUser,
-        rtcMessage: peerConnectionRef.current.localDescription
+        name: userName,
+        rtcMessage: sessionDescription
       });
-    }).catch((error) => {
-      console.log('Error creating offer:', error);
+    }, (error) => {
+      console.log("Error");
     });
   };
 
   const processAccept = () => {
     console.log('processAccept', peerConnectionRef.current, remoteRTCMessage);
     if (!peerConnectionRef.current) {
-      console.error('PeerConnection is not initialized in processAccept');
+      console.log('PeerConnection is not initialized in processAccept');
       // return;
     }
 
@@ -319,18 +321,23 @@ const VideoCall = () => {
       candidate: data.rtcMessage.candidate,
       sdpMid: data.rtcMessage.id
     });
-    setIceCandidatesFromCaller(candidate);
+    
 
     if (!peerConnectionRef.current) {
       console.log('PeerConnection is not initialized in receiveICEcandidate');
-      await createPeerConnection()
+      setIceCandidatesFromCaller(candidate);
+    }
+    else {
+      try {
+      
+        peerConnectionRef.current.addIceCandidate(candidate);
+  
+      } catch (error) {
+        console.log('Error adding received ICE candidate:', error);
+      }
     }
 
-    try {
-      peerConnectionRef.current.addIceCandidate(candidate);
-    } catch (error) {
-      console.log('Error adding received ICE candidate:', error);
-    }
+    
   };
 
   const callProgress = () => {
