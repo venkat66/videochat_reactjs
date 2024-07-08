@@ -1,6 +1,4 @@
-import  { useState, useRef, useEffect } from 'react';
-// import UserLogin from '../components/UserLogin';
-// import CallInput from '../components/CallInput';
+import { useState, useRef, useEffect } from 'react';
 import UserInfo from '../../components/UserInfo';
 import AnswerButton from '../../components/AnswerButton';
 import CallingStatus from '../../components/CallingStatus';
@@ -52,6 +50,7 @@ const VideoCall = () => {
 
         if (type === 'call_received') {
           console.log('Call received:', response.data);
+          beReady()
           onNewCall(response.data);
         }
 
@@ -107,7 +106,7 @@ const VideoCall = () => {
   };
 
   const onNewCall = (data) => {
-    console.log("onNewCall:",data)
+    console.log("onNewCall:", data)
     setOtherUser(data.caller);
     setShowAnswerButton(true);
     setRemoteRTCMessage(data.rtcMessage);
@@ -115,7 +114,6 @@ const VideoCall = () => {
   };
 
   const onCallAnswered = (data) => {
-    setRemoteRTCMessage(data.rtcMessage);
     peerConnectionRef.current.setRemoteDescription(
       new RTCSessionDescription(data.rtcMessage)
     );
@@ -134,15 +132,42 @@ const VideoCall = () => {
 
   const beReady = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+      const constraints = {
         audio: true,
         video: true
-      });
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       console.log('Local stream obtained');
       setLocalStream(stream);
-      return await createConnectionAndAddStream(stream);
+      return createConnectionAndAddStream(stream);
     } catch (e) {
-      alert('getUserMedia() error: ' + e.name);
+      handleGetUserMediaError(e);
+    }
+  };
+
+  const handleGetUserMediaError = (e) => {
+    switch (e.name) {
+      case 'NotAllowedError':
+        alert('Permission denied: Please allow access to camera and microphone.');
+        break;
+      case 'NotFoundError':
+        alert('No media devices found: Please ensure your camera and microphone are connected.');
+        break;
+      case 'NotReadableError':
+        alert('Media devices are not accessible: Please check if other applications are using them.');
+        break;
+      case 'OverconstrainedError':
+        alert('Constraints cannot be satisfied by available devices.');
+        break;
+      case 'SecurityError':
+        alert('Media device access is restricted by your browser or system security settings.');
+        break;
+      case 'TypeError':
+        alert('Invalid constraints provided.');
+        break;
+      default:
+        alert(`getUserMedia() error: ${e.name}`);
     }
   };
 
@@ -152,61 +177,60 @@ const VideoCall = () => {
     return true;
   };
 
-  const processCall = (userName) => {
-    peerConnectionRef.current.createOffer(
-      (sessionDescription) => {
-        peerConnectionRef.current.setLocalDescription(sessionDescription);
-        sendCall({
-          name: userName,
-          rtcMessage: sessionDescription
-        });
-      },
-      (error) => {
-        console.log('Error creating offer:', error);
-      }
-    );
+  const processCall = (otherUser) => {
+    peerConnectionRef.current.createOffer().then((sessionDescription) => {
+      return peerConnectionRef.current.setLocalDescription(sessionDescription);
+    }).then(() => {
+      sendCall({
+        name: otherUser,
+        rtcMessage: peerConnectionRef.current.localDescription
+      });
+    }).catch((error) => {
+      console.log('Error creating offer:', error);
+    });
   };
 
   const processAccept = () => {
+    console.log('processAccept', peerConnectionRef.current, remoteRTCMessage)
     peerConnectionRef.current.setRemoteDescription(
       new RTCSessionDescription(remoteRTCMessage)
-    );
-    peerConnectionRef.current.createAnswer(
-      (sessionDescription) => {
-        peerConnectionRef.current.setLocalDescription(sessionDescription);
-
-        if (iceCandidatesFromCaller.length > 0) {
-          iceCandidatesFromCaller.forEach((candidate) => {
-            try {
-              peerConnectionRef.current.addIceCandidate(candidate);
-            } catch (error) {
-              console.log('Error adding ICE candidate:', error);
-            }
-          });
-          setIceCandidatesFromCaller([]);
-        }
-
-        answerCall({
-          caller: otherUser,
-          rtcMessage: sessionDescription
+    ).then(() => {
+      return peerConnectionRef.current.createAnswer();
+    }).then((sessionDescription) => {
+      return peerConnectionRef.current.setLocalDescription(sessionDescription);
+    }).then(() => {
+      if (iceCandidatesFromCaller.length > 0) {
+        iceCandidatesFromCaller.forEach((candidate) => {
+          try {
+            peerConnectionRef.current.addIceCandidate(candidate);
+          } catch (error) {
+            console.log('Error adding ICE candidate:', error);
+          }
         });
-      },
-      (error) => {
-        console.log('Error creating answer:', error);
+        setIceCandidatesFromCaller([]);
       }
-    );
+
+      answerCall({
+        caller: otherUser,
+        rtcMessage: peerConnectionRef.current.localDescription
+      });
+    }).catch((error) => {
+      console.log('Error creating answer:', error);
+    });
   };
 
   const createPeerConnection = () => {
-    try {
-      peerConnectionRef.current = new RTCPeerConnection(pcConfig);
-      peerConnectionRef.current.onicecandidate = handleIceCandidate;
-      peerConnectionRef.current.onaddstream = handleRemoteStreamAdded;
-      peerConnectionRef.current.onremovestream = handleRemoteStreamRemoved;
-      console.log('Created RTCPeerConnection');
-    } catch (e) {
-      console.log('Failed to create PeerConnection:', e.message);
-      alert('Cannot create RTCPeerConnection object.');
+    if (!peerConnectionRef.current) {
+      try {
+        peerConnectionRef.current = new RTCPeerConnection(pcConfig);
+        peerConnectionRef.current.onicecandidate = handleIceCandidate;
+        peerConnectionRef.current.onaddstream = handleRemoteStreamAdded;
+        peerConnectionRef.current.onremovestream = handleRemoteStreamRemoved;
+        console.log('Created RTCPeerConnection');
+      } catch (e) {
+        console.log('Failed to create PeerConnection:', e.message);
+        alert('Cannot create RTCPeerConnection object.');
+      }
     }
   };
 
@@ -247,6 +271,7 @@ const VideoCall = () => {
   };
 
   const answerCall = (data) => {
+    console.log(data, 'answerCalllll')
     callSocketRef.current.send(
       JSON.stringify({
         type: 'answer_call',
@@ -270,11 +295,19 @@ const VideoCall = () => {
   };
 
   const receiveICEcandidate = (data) => {
+    console.log(data, 'receiveICECandidate')
+    // createPeerConnection()
+    
     const candidate = new RTCIceCandidate({
       sdpMLineIndex: data.rtcMessage.label,
       candidate: data.rtcMessage.candidate,
       sdpMid: data.rtcMessage.id
     });
+    console.log('candidate,,,,,,',candidate)
+    if (!peerConnectionRef.current) {
+      console.error('PeerConnection is not initialized.');
+      return;
+    }
     try {
       peerConnectionRef.current.addIceCandidate(candidate);
     } catch (error) {
