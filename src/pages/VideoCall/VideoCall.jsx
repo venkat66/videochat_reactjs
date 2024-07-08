@@ -248,7 +248,7 @@ const VideoCall = () => {
     console.log('processAccept', peerConnectionRef.current, remoteRTCMessage);
     if (!peerConnectionRef.current) {
       console.error('PeerConnection is not initialized in processAccept');
-      return;
+      // return;
     }
 
     peerConnectionRef.current.setRemoteDescription(
@@ -259,6 +259,7 @@ const VideoCall = () => {
       return peerConnectionRef.current.setLocalDescription(sessionDescription);
     }).then(() => {
       if (iceCandidatesFromCaller.length > 0) {
+        console.log('iceCandidatesFromCaller',iceCandidatesFromCaller)
         iceCandidatesFromCaller.forEach((candidate) => {
           try {
             peerConnectionRef.current.addIceCandidate(candidate);
