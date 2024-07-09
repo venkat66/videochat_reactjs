@@ -1,7 +1,7 @@
-const handleRemoteStreamAdded = (event) => {
-  console.log('Remote stream added:', event.stream);
-  setRemoteStream(event.stream);
-};
+// const handleRemoteStreamAdded = (event) => {
+//   console.log('Remote stream added:', event.stream);
+//   setRemoteStream(event.stream);
+// };
 
 // In your Videos component, add logging to check the streams
 import React, { useEffect, useRef } from 'react';
@@ -31,6 +31,20 @@ const Videos = ({ localStream, remoteStream }) => {
           <div className="card">
             <div className="card-body">
               <h5 className="card-title">Local Video</h5>
+              <video 
+                id="localVideo" 
+                autoPlay 
+                muted 
+                ref={localVideoRef} 
+                className="w-100"
+              ></video>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-6">
+          <div className="card">
+            <div className="card-body">
+              <h5 className="card-title">Local Video 2</h5>
               <video 
                 id="localVideo" 
                 autoPlay 
