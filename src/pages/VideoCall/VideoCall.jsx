@@ -153,11 +153,11 @@ const VideoCall = () => {
         audio: true,
         video: true
       };
-      // createPeerConnection();
+      createPeerConnection();
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       console.log('Local stream obtained');
       setLocalStream(stream);
-      createPeerConnection(); // Ensure peer connection is created
+      // createPeerConnection(); // Ensure peer connection is created
       console.log('went through beready')
       peerConnectionRef.current.addStream(stream);
     } catch (e) {
@@ -260,10 +260,11 @@ const VideoCall = () => {
     ).then(() => {
       return peerConnectionRef.current.createAnswer();
     }).then((sessionDescription) => {
+      console.log("sessionDescription processAccept",sessionDescription)
       return peerConnectionRef.current.setLocalDescription(sessionDescription);
     }).then(() => {
       if (iceCandidatesFromCaller.length > 0) {
-        console.log('iceCandidatesFromCaller',iceCandidatesFromCaller)
+        console.log('iceCandidatesFromCaller in accept',iceCandidatesFromCaller)
         iceCandidatesFromCaller.forEach((candidate) => {
           try {
             peerConnectionRef.current.addIceCandidate(candidate);
@@ -273,7 +274,7 @@ const VideoCall = () => {
         });
         setIceCandidatesFromCaller([]);
       }
-
+      console.log("peerConnectionRef.current.localDescription",peerConnectionRef.current.localDescription)
       answerCall({
         caller: otherUser,
         rtcMessage: peerConnectionRef.current.localDescription
